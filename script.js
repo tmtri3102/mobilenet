@@ -1,5 +1,5 @@
 // --- CONFIGURATION ---
-const BACKEND_URL = "https://30fe448cbee3.ngrok-free.app"; // IMPORTANT: Change this!
+const BACKEND_URL = "https://4cfb2f488bbc.ngrok-free.app"; // IMPORTANT: Change this!
 
 // --- DOM ELEMENTS ---
 const showCreateBtn = document.getElementById("show-create-btn");
@@ -165,13 +165,28 @@ async function handleCreateObject() {
  * Fetches all saved object data from the backend
  */
 async function fetchSavedObjects() {
+  console.log(`Attempting to fetch objects from: ${BACKEND_URL}/api/objects`);
   try {
     const response = await fetch(`${BACKEND_URL}/api/objects`);
+    if (!response.ok) {
+      // Handle server errors (like 404 or 500)
+      const errorText = await response.text();
+      console.error(
+        "Server responded with an error:",
+        response.status,
+        errorText
+      );
+      alert(`Could not get object data. Server said: ${response.status}`);
+      return; // Stop execution
+    }
     savedObjects = await response.json();
-    console.log("Fetched saved objects:", savedObjects);
+    console.log("Fetched and saved objects:", savedObjects);
   } catch (error) {
-    console.error("Could not fetch saved objects:", error);
-    alert("Could not connect to the server to get object data.");
+    // Handle network/connection errors
+    console.error("**Fetch Error:** Could not connect to the server.", error);
+    alert(
+      `Could not connect to the server to get object data. Please check the console. Message: ${error.message}`
+    );
   }
 }
 
