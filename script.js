@@ -83,7 +83,11 @@ async function handleCreateObject() {
   createBtn.disabled = true;
   createBtn.textContent = "Processing...";
 
-  // 1. Get Geolocation
+  // Log the URL we are about to call for debugging
+  console.log(
+    `Attempting to connect to backend at: ${BACKEND_URL}/api/objects`
+  );
+
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       const location = {
@@ -91,7 +95,7 @@ async function handleCreateObject() {
         longitude: position.coords.longitude,
       };
 
-      // 2. Generate Feature Vectors for each image
+      // ... (the rest of the function for generating features is the same)
       const features = [];
       for (const file of imageUpload.files) {
         const img = new Image();
@@ -101,7 +105,6 @@ async function handleCreateObject() {
         features.push(Array.from(featureVector.dataSync()));
       }
 
-      // 3. Prepare data and send to backend
       const formData = new FormData();
       formData.append("name", document.getElementById("object-name").value);
       formData.append(
@@ -119,15 +122,31 @@ async function handleCreateObject() {
           method: "POST",
           body: formData,
         });
+
         if (response.ok) {
           alert("Object created successfully!");
           resetCreateForm();
         } else {
-          alert("Failed to create object.");
+          // Get more details from a failed server response
+          const errorText = await response.text();
+          console.error(
+            "Server responded with an error:",
+            response.status,
+            errorText
+          );
+          alert(
+            `Failed to create object. Server said: ${response.status} - ${errorText}`
+          );
         }
       } catch (error) {
-        console.error("Error creating object:", error);
-        alert("Error connecting to the server.");
+        // This is the block for a total connection failure
+        console.error(
+          "**Fetch Error:** Could not connect to the server.",
+          error
+        );
+        alert(
+          `Error connecting to the server. Please check the console for details. Message: ${error.message}`
+        );
       } finally {
         createBtn.disabled = false;
         createBtn.textContent = "Create Object";
