@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Object Detector</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="main-controls">
+      <button id="show-create-btn">Create New Object</button>
+      <button id="detect-btn">Detect Object</button>
+    </div>
+
+    <div id="create-section" class="hidden">
+      <h2>Add New Object</h2>
+      <input type="file" id="image-upload" accept="image/*" multiple />
+      <label for="image-upload" class="button">Upload or Take Pictures</label>
+      <div id="preview-container"></div>
+      <input type="text" id="object-name" placeholder="Object Name" />
+      <textarea
+        id="object-description"
+        placeholder="Object Description"
+      ></textarea>
+      <button id="create-btn" disabled>Create Object</button>
+    </div>
+
+    <div id="detection-section" class="hidden">
+      <video id="video-feed" autoplay playsinline></video>
+      <div id="detection-result"></div>
+      <button id="stop-detection-btn">Stop Detection</button>
+    </div>
+
+    <div id="loading-indicator" class="hidden">Loading AI Model...</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
