@@ -19,6 +19,10 @@ let model;
 let savedObjects = [];
 let isDetecting = false;
 let stream;
+// NEW: Variables for the high-confidence popup
+const HIGH_CONFIDENCE_THRESHOLD = 0.97; // Only show popups for scores above 97%
+let lastDetectedObjectId = null;
+let popupTimeout;
 
 // --- INITIALIZATION ---
 async function loadModel() {
@@ -36,6 +40,14 @@ showCreateBtn.addEventListener("click", () => {
   detectionSection.classList.add("hidden");
   mainControls.classList.add("hidden");
   stopDetection();
+});
+
+// NEW: Popup close button listener
+const popupContainer = document.getElementById("popup-container");
+const popupCloseBtn = document.getElementById("popup-close-btn");
+
+popupCloseBtn.addEventListener("click", () => {
+  popupContainer.classList.add("hidden");
 });
 
 detectBtn.addEventListener("click", async () => {
@@ -226,41 +238,60 @@ function stopDetection() {
  */
 async function detectionLoop() {
   if (isDetecting && model && savedObjects.length > 0) {
-    // NEW CHECK: Wait until the video is ready and has a valid size
     if (videoFeed.readyState < 3 || videoFeed.videoWidth === 0) {
-      console.log("Video not ready yet, waiting for the next frame...");
-      requestAnimationFrame(detectionLoop); // Try again on the next frame
-      return; // Exit this function call
+      requestAnimationFrame(detectionLoop);
+      return;
     }
 
-    console.log(
-      `Detection loop running... Comparing against ${savedObjects.length} saved objects.`
-    );
-
     const currentFeatures = await getFeatureVector(videoFeed);
-
-    let bestMatch = { id: null, name: null, score: 0.4 };
+    let bestMatch = { id: null, name: "None", description: "", score: 0 };
 
     for (const obj of savedObjects) {
       for (const savedFeature of obj.features) {
         const savedTensor = tf.tensor(savedFeature);
         const similarity = cosineSimilarity(currentFeatures, savedTensor);
-        console.log(`- Similarity with ${obj.name}: ${similarity.toFixed(4)}`);
         if (similarity > bestMatch.score) {
-          bestMatch = { id: obj.id, name: obj.name, score: similarity };
+          bestMatch = {
+            id: obj.id,
+            name: obj.name,
+            description: obj.description,
+            score: similarity,
+          };
         }
       }
     }
 
-    if (bestMatch.id) {
-      detectionResult.textContent = `Detected: ${
-        bestMatch.name
-      } (Confidence: ${Math.round(bestMatch.score * 100)}%)`;
-    } else {
-      detectionResult.textContent = `Scanning... (Highest similarity: ${Math.round(
-        bestMatch.score * 100
-      )}%)`;
+    // NEW LOGIC: Check for a new, high-confidence detection
+    if (
+      bestMatch.score > HIGH_CONFIDENCE_THRESHOLD &&
+      bestMatch.id !== lastDetectedObjectId
+    ) {
+      console.log(
+        `New high-confidence match: ${bestMatch.name} (${bestMatch.score})`
+      );
+
+      // Show the popup with the object's info
+      document.getElementById("popup-title").textContent = bestMatch.name;
+      document.getElementById("popup-description").textContent =
+        bestMatch.description;
+      popupContainer.classList.remove("hidden");
+
+      // Remember this object so we don't show the popup again immediately
+      lastDetectedObjectId = bestMatch.id;
+
+      // Optional: Automatically hide the popup after a few seconds
+      clearTimeout(popupTimeout); // Clear any previous timer
+      popupTimeout = setTimeout(() => {
+        popupContainer.classList.add("hidden");
+        lastDetectedObjectId = null; // Allow detection again after hiding
+      }, 5000); // Hide after 5 seconds
+    } else if (bestMatch.score < HIGH_CONFIDENCE_THRESHOLD - 0.1) {
+      // If the score drops significantly, reset the detection
+      lastDetectedObjectId = null;
     }
+
+    // Clean up the text div (we use the popup now)
+    detectionResult.textContent = "";
 
     currentFeatures.dispose();
     requestAnimationFrame(detectionLoop);
