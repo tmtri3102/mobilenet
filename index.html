@@ -26,9 +26,22 @@
     </div>
 
     <div id="detection-section" class="hidden">
-      <video id="video-feed" autoplay playsinline></video>
-      <div id="detection-result"></div>
-      <button id="stop-detection-btn">Stop Detection</button>
+      <input
+        type="file"
+        id="capture-input"
+        accept="image/*"
+        capture="environment"
+        class="hidden"
+      />
+      <button id="capture-btn">Take Picture of Object</button>
+      <img id="image-preview" class="hidden" alt="Captured image preview" />
+      <button id="start-detection-btn" class="hidden">
+        Detect Object in Picture
+      </button>
+      <div id="results-container">
+        <p id="results-title"></p>
+        <ul id="results-list"></ul>
+      </div>
     </div>
 
     <div id="loading-indicator" class="hidden">Loading AI Model...</div>
