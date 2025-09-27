@@ -226,24 +226,26 @@ function stopDetection() {
  */
 async function detectionLoop() {
   if (isDetecting && model && savedObjects.length > 0) {
-    // NEW: Log to confirm the loop is active and has data
+    // NEW CHECK: Wait until the video is ready and has a valid size
+    if (videoFeed.readyState < 3 || videoFeed.videoWidth === 0) {
+      console.log("Video not ready yet, waiting for the next frame...");
+      requestAnimationFrame(detectionLoop); // Try again on the next frame
+      return; // Exit this function call
+    }
+
     console.log(
       `Detection loop running... Comparing against ${savedObjects.length} saved objects.`
     );
 
     const currentFeatures = await getFeatureVector(videoFeed);
 
-    // The threshold for a match. We start with 0.4 (40% similarity)
     let bestMatch = { id: null, name: null, score: 0.4 };
 
     for (const obj of savedObjects) {
       for (const savedFeature of obj.features) {
         const savedTensor = tf.tensor(savedFeature);
         const similarity = cosineSimilarity(currentFeatures, savedTensor);
-
-        // NEW: Log the similarity score for every comparison
         console.log(`- Similarity with ${obj.name}: ${similarity.toFixed(4)}`);
-
         if (similarity > bestMatch.score) {
           bestMatch = { id: obj.id, name: obj.name, score: similarity };
         }
@@ -255,7 +257,6 @@ async function detectionLoop() {
         bestMatch.name
       } (Confidence: ${Math.round(bestMatch.score * 100)}%)`;
     } else {
-      // NEW: More informative scanning text
       detectionResult.textContent = `Scanning... (Highest similarity: ${Math.round(
         bestMatch.score * 100
       )}%)`;
