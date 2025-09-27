@@ -225,7 +225,9 @@ async function analyzeCapturedImage() {
   }
 
   matches.sort((a, b) => b.score - a.score); // Sort matches by highest score
-  displayResults(matches);
+  const finalMatches = matches.filter((match) => match.score >= 0.98);
+
+  displayResults(finalMatches);
 
   startDetectionBtn.textContent = "Detect Object in Picture";
   startDetectionBtn.disabled = false;
