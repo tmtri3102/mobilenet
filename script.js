@@ -1,5 +1,5 @@
 // --- CONFIGURATION ---
-const BACKEND_URL = "https://4cfb2f488bbc.ngrok-free.app"; // IMPORTANT: Change this!
+const BACKEND_URL = "https://western-ping-entered-drilling.trycloudflare.com"; // IMPORTANT: Change this!
 
 // --- DOM ELEMENTS ---
 const showCreateBtn = document.getElementById("show-create-btn");
