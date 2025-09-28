@@ -1,5 +1,6 @@
 // --- CONFIGURATION ---
-const BACKEND_URL = "https://western-ping-entered-drilling.trycloudflare.com"; // IMPORTANT: Change this!
+const BACKEND_URL =
+  "https://rip-princess-publicity-institution.trycloudflare.com"; // IMPORTANT: Change this!
 
 // --- DOM ELEMENTS (get references to all HTML elements we need) ---
 const showCreateBtn = document.getElementById("show-create-btn");
@@ -48,7 +49,6 @@ showCreateBtn.addEventListener("click", () => {
 
 // Show the 'Detect Object' section
 detectBtn.addEventListener("click", () => {
-  fetchSavedObjects(); // Fetch latest objects from server
   createSection.classList.add("hidden");
   detectionSection.classList.remove("hidden");
   mainControls.classList.add("hidden");
@@ -170,67 +170,44 @@ async function handleCreateObject() {
 }
 
 /**
- * Fetches all saved object data from the backend.
- */
-async function fetchSavedObjects() {
-  try {
-    const response = await fetch(`${BACKEND_URL}/api/objects`);
-    savedObjects = await response.json();
-    console.log("Fetched saved objects:", savedObjects);
-  } catch (error) {
-    console.error("Could not fetch saved objects:", error);
-    alert("Could not connect to the server to get object data.");
-  }
-}
-
-/**
  * Main function for the detection workflow. Analyzes the captured image.
  */
 async function analyzeCapturedImage() {
-  if (!model || savedObjects.length === 0) {
-    alert("Model or saved objects not ready yet.");
+  if (!model) {
+    alert("Model is not ready yet.");
     return;
   }
   startDetectionBtn.textContent = "Analyzing...";
   startDetectionBtn.disabled = true;
 
+  // 1. Get feature vector from the single captured image
   const capturedImage = document.getElementById("image-preview");
-  const currentFeatures = await getFeatureVector(capturedImage);
+  const featureVector = await getFeatureVector(capturedImage);
 
-  let matches = [];
-  const MINIMUM_THRESHOLD = 0.5; // Only consider matches above 50% similarity
+  try {
+    // 2. Send this vector to the server's new /api/detect endpoint
+    const response = await fetch(`${BACKEND_URL}/api/detect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ features: Array.from(featureVector.dataSync()) }),
+    });
 
-  for (const obj of savedObjects) {
-    for (const savedFeature of obj.features) {
-      const savedTensor = tf.tensor(savedFeature);
-      const similarity = cosineSimilarity(currentFeatures, savedTensor);
-
-      const existingMatch = matches.find((m) => m.id === obj.id);
-      if (
-        similarity > (existingMatch ? existingMatch.score : MINIMUM_THRESHOLD)
-      ) {
-        const matchData = {
-          id: obj.id,
-          name: obj.name,
-          description: obj.description,
-          score: similarity,
-        };
-        if (existingMatch) {
-          existingMatch.score = similarity;
-        } else {
-          matches.push(matchData);
-        }
-      }
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
     }
+
+    const matches = await response.json();
+
+    // 3. Filter results based on confidence and display them
+    const finalMatches = matches.filter((match) => match.score >= 0.95); // Adjusted threshold
+    displayResults(finalMatches);
+  } catch (error) {
+    console.error("Detection failed:", error);
+    alert("Failed to get detection results from the server.");
+  } finally {
+    startDetectionBtn.textContent = "Detect Object in Picture";
+    startDetectionBtn.disabled = false;
   }
-
-  matches.sort((a, b) => b.score - a.score); // Sort matches by highest score
-  const finalMatches = matches.filter((match) => match.score >= 0.98);
-
-  displayResults(finalMatches);
-
-  startDetectionBtn.textContent = "Detect Object in Picture";
-  startDetectionBtn.disabled = false;
 }
 
 /**
